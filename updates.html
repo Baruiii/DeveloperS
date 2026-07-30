@@ -103,6 +103,27 @@
     .logout-btn:hover {
       background: rgba(255, 107, 26, 0.12);
     }
+    .music-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: transparent;
+      border: 1.5px solid rgba(255, 107, 26, 0.4);
+      color: rgba(255, 180, 120, 0.7);
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+      flex-shrink: 0;
+    }
+    .music-btn:hover,
+    .music-btn.active {
+      color: #ff6b1a;
+      border-color: #ff6b1a;
+      background: rgba(255, 107, 26, 0.12);
+    }
 
     .wrap {
       position: relative;
@@ -367,10 +388,15 @@
       </nav>
     </div>
     <div class="topbar-right">
+      <button class="music-btn" id="music-btn" title="Toggle music" aria-label="Toggle music">♪</button>
       <span class="user-info" id="user-email"></span>
       <button class="logout-btn" id="logout-btn">Log out</button>
     </div>
   </header>
+
+  <audio id="bg-music" loop preload="auto">
+    <source src="music/bg.mp3" type="audio/mpeg">
+  </audio>
 
   <div class="wrap" id="app">
     <div class="page-header">
@@ -424,6 +450,46 @@
     const logoutBtn = document.getElementById('logout-btn');
     const grid = document.getElementById('cards-grid');
     const searchInput = document.getElementById('search-input');
+
+    // ---------- Background music (shared across all pages) ----------
+    const music = document.getElementById('bg-music');
+    const musicBtn = document.getElementById('music-btn');
+    music.volume = 0.35;
+
+    function setMusicUI(on) {
+      musicBtn.classList.toggle('active', on);
+      musicBtn.title = on ? 'Mute music' : 'Play music';
+    }
+
+    function tryPlayMusic() {
+      music.play().then(() => {
+        setMusicUI(true);
+        localStorage.setItem('studioleaks-music', 'on');
+      }).catch(() => {
+        setMusicUI(false);
+      });
+    }
+
+    if (localStorage.getItem('studioleaks-music') === 'on') {
+      tryPlayMusic();
+    }
+
+    musicBtn.addEventListener('click', () => {
+      if (music.paused) {
+        tryPlayMusic();
+      } else {
+        music.pause();
+        setMusicUI(false);
+        localStorage.setItem('studioleaks-music', 'off');
+      }
+    });
+
+    document.addEventListener('click', function resumeOnce() {
+      if (localStorage.getItem('studioleaks-music') === 'on' && music.paused) {
+        tryPlayMusic();
+      }
+      document.removeEventListener('click', resumeOnce);
+    }, { once: true });
 
     function showApp(email) {
       userEmailEl.textContent = email || '';
@@ -680,3 +746,4 @@
   </script>
 </body>
 </html>
+
