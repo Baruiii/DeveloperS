@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StudioLeaks — Updates</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #1a0a00;
+      min-height: 100vh;
+      font-family: 'Inter', system-ui, sans-serif;
+      color: #fff;
+      position: relative;
+      overflow-x: hidden;
+    }
+    #bg-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.9rem 1.5rem;
+      background: rgba(20, 8, 0, 0.88);
+      border-bottom: 1.5px solid rgba(255, 107, 26, 0.35);
+      backdrop-filter: blur(16px);
+    }
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 1.75rem;
+      flex-wrap: wrap;
+    }
+    .brand {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 20px;
+      color: #ff6b1a;
+      text-shadow: 0 0 18px rgba(255, 107, 26, 0.4);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .nav-link {
+      padding: 0.45rem 0.85rem;
+      border-radius: 8px;
+      color: rgba(255, 180, 120, 0.75);
+      font-size: 13px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: color 0.2s, background 0.2s;
+      white-space: nowrap;
+    }
+    .nav-link:hover {
+      color: #ff6b1a;
+      background: rgba(255, 107, 26, 0.1);
+    }
+    .nav-link.active {
+      color: #ff6b1a;
+      background: rgba(255, 107, 26, 0.14);
+    }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+    .user-info {
+      font-size: 13px;
+      color: rgba(255, 180, 120, 0.65);
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .logout-btn {
+      padding: 0.45rem 0.95rem;
+      background: transparent;
+      border: 1.5px solid rgba(255, 107, 26, 0.4);
+      border-radius: 9px;
+      color: #ff6b1a;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+    .logout-btn:hover {
+      background: rgba(255, 107, 26, 0.12);
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 2;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2.25rem 1.5rem 4rem;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+    .wrap.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .page-header {
+      margin-bottom: 1.75rem;
+    }
+    .page-header h1 {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: clamp(22px, 4vw, 28px);
+      margin-bottom: 0.4rem;
+    }
+    .page-header p {
+      color: rgba(255, 180, 120, 0.72);
+      font-size: 15px;
+      line-height: 1.55;
+      max-width: 560px;
+    }
+
+    .search-wrap {
+      position: relative;
+      margin-bottom: 2rem;
+      max-width: 420px;
+    }
+    .search-wrap input {
+      width: 100%;
+      padding: 0.85rem 1.1rem 0.85rem 2.7rem;
+      background: rgba(255, 107, 26, 0.07);
+      border: 1.5px solid rgba(255, 107, 26, 0.35);
+      border-radius: 12px;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+    .search-wrap input::placeholder {
+      color: rgba(255, 180, 120, 0.4);
+    }
+    .search-wrap input:focus {
+      border-color: #ff6b1a;
+      background: rgba(255, 107, 26, 0.11);
+      box-shadow: 0 0 0 3px rgba(255, 107, 26, 0.14);
+    }
+    .search-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255, 180, 120, 0.5);
+      margin-bottom: 1rem;
+    }
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+    .resource-card {
+      position: relative;
+      background: rgba(20, 8, 0, 0.82);
+      border: 1.5px solid rgba(255, 107, 26, 0.4);
+      border-radius: 16px;
+      overflow: hidden;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 12px 32px -10px rgba(0,0,0,0.5), 0 0 24px rgba(255,107,26,0.08);
+      transition: transform 0.22s, border-color 0.22s, box-shadow 0.22s;
+      display: flex;
+      flex-direction: column;
+    }
+    .resource-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(255, 107, 26, 0.65);
+      box-shadow: 0 18px 40px -10px rgba(0,0,0,0.55), 0 0 32px rgba(255,107,26,0.14);
+    }
+
+    .card-media {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: linear-gradient(145deg, #3d1800 0%, #2a0f00 50%, #1a0a00 100%);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .card-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .card-media.no-image {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card-media.no-image::after {
+      content: '';
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: rgba(255, 107, 26, 0.15);
+      border: 1.5px solid rgba(255, 107, 26, 0.3);
+      box-shadow: 0 0 20px rgba(255, 107, 26, 0.15);
+    }
+
+    .card-action {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 3;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(20, 8, 0, 0.75);
+      border: 1.5px solid rgba(255, 107, 26, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, transform 0.2s;
+      text-decoration: none;
+      color: #ff6b1a;
+    }
+    .card-action:hover {
+      background: rgba(255, 107, 26, 0.2);
+      border-color: #ff6b1a;
+      transform: scale(1.06);
+    }
+    .card-action svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    .card-body {
+      padding: 1.15rem 1.2rem 1.3rem;
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      gap: 0.45rem;
+    }
+    .card-title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 16px;
+      color: #fff;
+      line-height: 1.3;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: rgba(255, 180, 120, 0.7);
+      line-height: 1.5;
+      flex: 1;
+    }
+    .card-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-top: 0.25rem;
+      flex-wrap: wrap;
+    }
+    .card-tag {
+      display: inline-block;
+      padding: 0.25rem 0.55rem;
+      border-radius: 6px;
+      background: rgba(255, 107, 26, 0.12);
+      border: 1px solid rgba(255, 107, 26, 0.25);
+      color: #ff9500;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+    .card-date {
+      font-size: 11px;
+      color: rgba(255, 180, 120, 0.4);
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 3.5rem 1.5rem;
+    }
+    .empty-state h3 {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 22px;
+      color: rgba(255, 180, 120, 0.85);
+      margin-bottom: 0.4rem;
+    }
+    .empty-state p {
+      font-size: 14px;
+      color: rgba(255, 180, 120, 0.35);
+    }
+
+    .loading {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: #1a0a00;
+      font-family: 'Archivo Black', sans-serif;
+      color: #ff6b1a;
+      font-size: 18px;
+      opacity: 1;
+      transition: opacity 0.4s ease;
+    }
+    .loading.fade-out { opacity: 0; pointer-events: none; }
+    .loading.hidden { display: none; }
+    .loading-sub {
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      color: rgba(255,180,120,0.55);
+      font-weight: 400;
+    }
+
+    @media (max-width: 640px) {
+      .topbar { padding: 0.75rem 1rem; }
+      .user-info { display: none; }
+      .nav-links { gap: 0.15rem; }
+      .nav-link { padding: 0.4rem 0.6rem; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="loading" id="loading">
+    Checking session…
+    <div class="loading-sub">Please wait</div>
+  </div>
+  <canvas id="bg-canvas"></canvas>
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <a href="dashboard.html" class="brand">StudioLeaks</a>
+      <nav class="nav-links">
+        <a href="dashboard.html" class="nav-link">Home</a>
+        <a href="updates.html" class="nav-link active">Updates</a>
+        <a href="credits.html" class="nav-link">Credits</a>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <span class="user-info" id="user-email"></span>
+      <button class="logout-btn" id="logout-btn">Log out</button>
+    </div>
+  </header>
+
+  <div class="wrap" id="app">
+    <div class="page-header">
+      <h1>Updates</h1>
+      <p>Changelog, new drops, and what’s coming next for StudioLeaks.</p>
+    </div>
+
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="#ffb478" stroke-width="2.2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>
+      </svg>
+      <input type="search" id="search-input" placeholder="Search updates…" autocomplete="off" />
+    </div>
+
+    <div class="section-label">Latest</div>
+    <div class="cards-grid" id="cards-grid">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://rkdvqfmmuioyxjqxtuuc.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrZHZxZm1tdWlveXhqcXh0dXVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNjQ3MzUsImV4cCI6MjEwMDk0MDczNX0.vyiN812DdhbiqMnqI9w2YY2eVMRx4IC-2Y6qyEVaSVU';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // ============================================================
+    //  UPDATES — edit this array to add / change posts
+    // ============================================================
+    //
+    //  title, description required
+    //  image       – optional URL (leave null for auto placeholder)
+    //  downloadUrl – optional link (hides button if empty)
+    //  tag         – optional label
+    //  date        – optional display date string
+    //
+    const UPDATES = [
+      // Example (uncomment or replace when you have real posts):
+      // {
+      //   title: "v1.2 — New raycast tools",
+      //   description: "Added hit filtering presets and a visual debug overlay. Download the updated module from the Home page.",
+      //   image: null,
+      //   downloadUrl: null,
+      //   tag: "Release",
+      //   date: "Jul 2026"
+      // },
+    ];
+
+    const loading = document.getElementById('loading');
+    const app = document.getElementById('app');
+    const userEmailEl = document.getElementById('user-email');
+    const logoutBtn = document.getElementById('logout-btn');
+    const grid = document.getElementById('cards-grid');
+    const searchInput = document.getElementById('search-input');
+
+    function showApp(email) {
+      userEmailEl.textContent = email || '';
+      loading.classList.add('fade-out');
+      setTimeout(() => {
+        loading.classList.add('hidden');
+        app.classList.add('visible');
+      }, 400);
+    }
+
+    function renderCards(items) {
+      grid.innerHTML = '';
+      if (!items.length) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <h3>Nothing to see here!</h3>
+            <p>haven't added anything yet!</p>
+          </div>`;
+        return;
+      }
+
+      items.forEach(item => {
+        const hasImage = item.image && String(item.image).trim() !== '';
+        const hasDownload = item.downloadUrl && String(item.downloadUrl).trim() !== '';
+
+        const card = document.createElement('article');
+        card.className = 'resource-card';
+        card.innerHTML = `
+          <div class="card-media ${hasImage ? '' : 'no-image'}">
+            ${hasImage ? `<img src="${item.image}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.parentElement.classList.add('no-image'); this.remove();" />` : ''}
+            ${hasDownload ? `
+              <a class="card-action" href="${item.downloadUrl}" target="_blank" rel="noopener" title="Download" aria-label="Download">
+                <svg viewBox="0 0 24 24"><path d="M12 3v10m0 0l-4-4m4 4l4-4M5 17v2a2 2 0 002 2h10a2 2 0 002-2v-2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </a>` : ''}
+          </div>
+          <div class="card-body">
+            <div class="card-title">${escapeHtml(item.title)}</div>
+            <div class="card-desc">${escapeHtml(item.description)}</div>
+            <div class="card-meta">
+              ${item.tag ? `<span class="card-tag">${escapeHtml(item.tag)}</span>` : ''}
+              ${item.date ? `<span class="card-date">${escapeHtml(item.date)}</span>` : ''}
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function filterCards() {
+      const q = searchInput.value.trim().toLowerCase();
+      if (!q) {
+        renderCards(UPDATES);
+        return;
+      }
+      const filtered = UPDATES.filter(r =>
+        (r.title || '').toLowerCase().includes(q) ||
+        (r.description || '').toLowerCase().includes(q) ||
+        (r.tag || '').toLowerCase().includes(q)
+      );
+      renderCards(filtered);
+    }
+
+    searchInput.addEventListener('input', filterCards);
+
+    async function init() {
+      try {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (error || !session) {
+          window.location.href = 'index.html';
+          return;
+        }
+        showApp(session.user.email);
+        renderCards(UPDATES);
+      } catch (err) {
+        console.error(err);
+        window.location.href = 'index.html';
+      }
+    }
+
+    setTimeout(() => {
+      if (!loading.classList.contains('hidden') && !loading.classList.contains('fade-out')) {
+        window.location.href = 'index.html';
+      }
+    }, 8000);
+
+    logoutBtn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = 'index.html';
+    });
+
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        window.location.href = 'index.html';
+      }
+    });
+
+    init();
+
+    // Background
+    (function () {
+      const canvas = document.getElementById('bg-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let W, H, mouse = { x: -999, y: -999 };
+      let rafId = null;
+      let isVisible = true;
+
+      function resize() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      const stars = Array.from({ length: 160 }, () => ({
+        x: Math.random() * 9999,
+        y: Math.random() * 9999,
+        r: Math.random() * 1.2 + 0.2,
+        a: Math.random()
+      }));
+      const shoots = [];
+      function spawnShoot() {
+        if (!isVisible) return;
+        const side = Math.random();
+        let x, y, angle;
+        if (side < 0.5) {
+          x = Math.random() * W; y = 0;
+          angle = Math.PI / 4 + (Math.random() - 0.5) * 0.4;
+        } else {
+          x = 0; y = Math.random() * H * 0.5;
+          angle = Math.PI / 6 + (Math.random() - 0.5) * 0.3;
+        }
+        shoots.push({
+          x, y,
+          vx: Math.cos(angle) * (5 + Math.random() * 6),
+          vy: Math.sin(angle) * (5 + Math.random() * 6),
+          len: 60 + Math.random() * 100,
+          life: 1,
+          decay: 0.016 + Math.random() * 0.02,
+          color: Math.random() < 0.5 ? '#ff6b1a' : Math.random() < 0.5 ? '#ff9500' : '#ffffff'
+        });
+      }
+      setInterval(spawnShoot, 1200);
+      for (let i = 0; i < 2; i++) setTimeout(spawnShoot, i * 300);
+
+      const particles = [];
+      let lastMX = -999, lastMY = -999;
+      window.addEventListener('mousemove', e => {
+        mouse.x = e.clientX; mouse.y = e.clientY;
+        const dx = mouse.x - lastMX, dy = mouse.y - lastMY;
+        const speed = Math.sqrt(dx * dx + dy * dy);
+        if (speed > 5 && particles.length < 40) {
+          const count = Math.min(Math.floor(speed / 8), 3);
+          for (let i = 0; i < count; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const spd = Math.random() * 1.5 + 0.4;
+            particles.push({
+              x: mouse.x, y: mouse.y,
+              vx: Math.cos(angle) * spd,
+              vy: Math.sin(angle) * spd - 0.4,
+              life: 1,
+              decay: 0.038 + Math.random() * 0.04,
+              r: Math.random() * 2.2 + 0.5,
+              color: ['#ff6b1a', '#ff9500', '#ff4500', '#ffa500'][Math.floor(Math.random() * 4)]
+            });
+          }
+        }
+        lastMX = mouse.x; lastMY = mouse.y;
+      });
+
+      let glowAlpha = 0;
+      window.addEventListener('mousemove', () => { glowAlpha = 1; });
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          isVisible = false;
+          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        } else {
+          isVisible = true;
+          if (!rafId) draw();
+        }
+      });
+
+      let t = 0;
+      function draw() {
+        if (!isVisible) return;
+        rafId = requestAnimationFrame(draw);
+        ctx.clearRect(0, 0, W, H);
+        const bg = ctx.createRadialGradient(W * 0.5, 0, 0, W * 0.5, H * 0.4, H);
+        bg.addColorStop(0, '#3d1800');
+        bg.addColorStop(0.4, '#2a0f00');
+        bg.addColorStop(1, '#1a0a00');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, W, H);
+        t += 0.006;
+        stars.forEach(s => {
+          const twinkle = s.a + Math.sin(t * 1.5 + s.x) * 0.35;
+          ctx.globalAlpha = Math.max(0.08, Math.min(0.9, twinkle));
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(s.x % W, s.y % H, s.r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+        for (let i = shoots.length - 1; i >= 0; i--) {
+          const s = shoots[i];
+          const spd = Math.sqrt(s.vx * s.vx + s.vy * s.vy) || 1;
+          const tailX = s.x - s.vx * (s.len / spd);
+          const tailY = s.y - s.vy * (s.len / spd);
+          const grad = ctx.createLinearGradient(tailX, tailY, s.x, s.y);
+          grad.addColorStop(0, 'rgba(0,0,0,0)');
+          const rgb = s.color === '#ffffff' ? '255,255,255' : s.color === '#ff9500' ? '255,149,0' : '255,107,26';
+          grad.addColorStop(1, `rgba(${rgb},${s.life})`);
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = 1.6 * s.life;
+          ctx.shadowColor = s.color;
+          ctx.shadowBlur = 10 * s.life;
+          ctx.beginPath(); ctx.moveTo(tailX, tailY); ctx.lineTo(s.x, s.y); ctx.stroke();
+          ctx.shadowBlur = 0;
+          s.x += s.vx; s.y += s.vy; s.life -= s.decay;
+          if (s.life <= 0 || s.x > W + 200 || s.y > H + 200) shoots.splice(i, 1);
+        }
+        if (mouse.x > 0) {
+          glowAlpha *= 0.94;
+          if (glowAlpha > 0.01) {
+            const mg = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 110);
+            mg.addColorStop(0, `rgba(255,107,26,${glowAlpha * 0.18})`);
+            mg.addColorStop(0.5, `rgba(255,149,0,${glowAlpha * 0.07})`);
+            mg.addColorStop(1, 'transparent');
+            ctx.fillStyle = mg;
+            ctx.beginPath(); ctx.arc(mouse.x, mouse.y, 110, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          ctx.globalAlpha = p.life * 0.8;
+          ctx.fillStyle = p.color;
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2); ctx.fill();
+          p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.life -= p.decay;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+        ctx.globalAlpha = 1;
+      }
+      draw();
+    })();
+  </script>
+</body>
+</html>
