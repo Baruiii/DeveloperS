@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -36,8 +37,6 @@
     @keyframes rippleOut {
       to { transform: translate(-50%, -50%) scale(1); opacity: 0; }
     }
-
-    /* ── LOGIN CARD ── */
     .login-card {
       position: relative;
       z-index: 2;
@@ -53,15 +52,6 @@
         0 25px 50px -12px rgba(0, 0, 0, 0.6),
         0 0 40px rgba(255, 107, 26, 0.12);
       text-align: center;
-    }
-
-    .login-title {
-      font-family: 'Archivo Black', sans-serif;
-      font-size: 28px;
-      color: #fff;
-      letter-spacing: -0.02em;
-      line-height: 1.15;
-      margin-bottom: 0.15rem;
     }
     .login-title span {
       display: block;
@@ -80,7 +70,6 @@
       text-shadow: 0 0 28px rgba(255, 107, 26, 0.5);
       margin-bottom: 2.5rem;
     }
-
     .field {
       margin-bottom: 1.1rem;
       text-align: left;
@@ -113,7 +102,6 @@
       background: rgba(255, 107, 26, 0.1);
       box-shadow: 0 0 0 3px rgba(255, 107, 26, 0.15);
     }
-
     .login-btn {
       width: 100%;
       margin-top: 0.75rem;
@@ -126,17 +114,23 @@
       font-size: 16px;
       letter-spacing: 0.03em;
       cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
       box-shadow: 0 4px 20px rgba(255, 107, 26, 0.35);
     }
-    .login-btn:hover {
+    .login-btn:hover:not(:disabled) {
       transform: translateY(-2px);
       box-shadow: 0 8px 28px rgba(255, 107, 26, 0.45);
     }
-    .login-btn:active {
-      transform: translateY(0);
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
-
+    .error-msg {
+      margin-top: 1rem;
+      font-size: 13px;
+      color: #ff6b6b;
+      min-height: 1.2em;
+    }
     .login-footer {
       margin-top: 1.75rem;
       font-size: 12px;
@@ -154,22 +148,63 @@
     </div>
     <div class="login-brand">StudioLeaks</div>
 
-    <form onsubmit="return false;">
+    <form id="login-form">
       <div class="field">
-        <label>Username</label>
-        <input type="text" placeholder="Enter username" autocomplete="username" />
+        <label>Email</label>
+        <input id="email" type="email" placeholder="Enter email" autocomplete="username" required />
       </div>
       <div class="field">
         <label>Password</label>
-        <input type="password" placeholder="Enter password" autocomplete="current-password" />
+        <input id="password" type="password" placeholder="Enter password" autocomplete="current-password" required />
       </div>
-      <button type="submit" class="login-btn">Sign In</button>
+      <button type="submit" class="login-btn" id="login-btn">Sign In</button>
+      <div class="error-msg" id="error-msg"></div>
     </form>
 
     <div class="login-footer">StudioLeaks — 2026</div>
   </div>
 
   <script>
+    // ── SUPABASE ──
+    const SUPABASE_URL = 'https://rkdvqfmmuioyxjqxtuuc.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrZHZxZm1tdWlveXhqcXh0dXVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNjQ3MzUsImV4cCI6MjEwMDk0MDczNX0.vyiN812DdhbiqMnqI9w2YY2eVMRx4IC-2Y6qyEVaSVU'; // ← paste anon public key here
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const form = document.getElementById('login-form');
+    const btn = document.getElementById('login-btn');
+    const errorMsg = document.getElementById('error-msg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.textContent = '';
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        errorMsg.textContent = error.message;
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+        return;
+      }
+
+      // Success — go to your protected page
+      window.location.href = 'dashboard.html';
+    });
+
+    // Optional: if already logged in, skip login page
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) window.location.href = 'dashboard.html';
+    });
+
     // ── ANIMATED BACKGROUND ──
     (function () {
       const canvas = document.getElementById('bg-canvas');
@@ -320,31 +355,4 @@
         }
 
         if (mouse.x > 0) {
-          glowAlpha *= 0.94;
-          if (glowAlpha > 0.01) {
-            const mg = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 110);
-            mg.addColorStop(0, `rgba(255,107,26,${glowAlpha * 0.18})`);
-            mg.addColorStop(0.5, `rgba(255,149,0,${glowAlpha * 0.07})`);
-            mg.addColorStop(1, 'transparent');
-            ctx.fillStyle = mg;
-            ctx.beginPath(); ctx.arc(mouse.x, mouse.y, 110, 0, Math.PI * 2); ctx.fill();
-          }
-        }
-
-        for (let i = particles.length - 1; i >= 0; i--) {
-          const p = particles[i];
-          ctx.globalAlpha = p.life * 0.8;
-          ctx.shadowColor = p.color; ctx.shadowBlur = 7;
-          ctx.fillStyle = p.color;
-          ctx.beginPath(); ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2); ctx.fill();
-          ctx.shadowBlur = 0;
-          p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.life -= p.decay;
-          if (p.life <= 0) particles.splice(i, 1);
-        }
-        ctx.globalAlpha = 1;
-      }
-      draw();
-    })();
-  </script>
-</body>
-</html>
+          glowAlpha
