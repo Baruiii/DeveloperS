@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Background</title>
+  <title>StudioLeaks — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -11,6 +14,10 @@
       min-height: 100vh;
       overflow: hidden;
       position: relative;
+      font-family: 'Inter', system-ui, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     #bg-canvas {
       position: fixed;
@@ -29,11 +36,141 @@
     @keyframes rippleOut {
       to { transform: translate(-50%, -50%) scale(1); opacity: 0; }
     }
+
+    /* ── LOGIN CARD ── */
+    .login-card {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 380px;
+      padding: 2.75rem 2.25rem 2rem;
+      background: rgba(20, 8, 0, 0.82);
+      border: 1.5px solid rgba(255, 107, 26, 0.45);
+      border-radius: 20px;
+      backdrop-filter: blur(16px);
+      box-shadow:
+        0 0 0 1px rgba(255, 107, 26, 0.08),
+        0 25px 50px -12px rgba(0, 0, 0, 0.6),
+        0 0 40px rgba(255, 107, 26, 0.12);
+      text-align: center;
+    }
+
+    .login-title {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 28px;
+      color: #fff;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 0.15rem;
+    }
+    .login-title span {
+      display: block;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      color: rgba(255, 180, 120, 0.7);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.35rem;
+    }
+    .login-brand {
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 32px;
+      color: #ff6b1a;
+      text-shadow: 0 0 28px rgba(255, 107, 26, 0.5);
+      margin-bottom: 2.5rem;
+    }
+
+    .field {
+      margin-bottom: 1.1rem;
+      text-align: left;
+    }
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(255, 180, 120, 0.65);
+      margin-bottom: 0.4rem;
+      letter-spacing: 0.04em;
+    }
+    .field input {
+      width: 100%;
+      padding: 0.9rem 1.1rem;
+      background: rgba(255, 107, 26, 0.06);
+      border: 1.5px solid rgba(255, 107, 26, 0.35);
+      border-radius: 12px;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+    .field input::placeholder {
+      color: rgba(255, 180, 120, 0.35);
+    }
+    .field input:focus {
+      border-color: #ff6b1a;
+      background: rgba(255, 107, 26, 0.1);
+      box-shadow: 0 0 0 3px rgba(255, 107, 26, 0.15);
+    }
+
+    .login-btn {
+      width: 100%;
+      margin-top: 0.75rem;
+      padding: 0.95rem;
+      background: linear-gradient(135deg, #ff6b1a, #ff9500);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-family: 'Archivo Black', sans-serif;
+      font-size: 16px;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(255, 107, 26, 0.35);
+    }
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(255, 107, 26, 0.45);
+    }
+    .login-btn:active {
+      transform: translateY(0);
+    }
+
+    .login-footer {
+      margin-top: 1.75rem;
+      font-size: 12px;
+      color: rgba(255, 180, 120, 0.4);
+      letter-spacing: 0.04em;
+    }
   </style>
 </head>
 <body>
   <canvas id="bg-canvas"></canvas>
+
+  <div class="login-card">
+    <div class="login-title">
+      <span>Login to</span>
+    </div>
+    <div class="login-brand">StudioLeaks</div>
+
+    <form onsubmit="return false;">
+      <div class="field">
+        <label>Username</label>
+        <input type="text" placeholder="Enter username" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" placeholder="Enter password" autocomplete="current-password" />
+      </div>
+      <button type="submit" class="login-btn">Sign In</button>
+    </form>
+
+    <div class="login-footer">StudioLeaks — 2026</div>
+  </div>
+
   <script>
+    // ── ANIMATED BACKGROUND ──
     (function () {
       const canvas = document.getElementById('bg-canvas');
       const ctx = canvas.getContext('2d');
@@ -48,7 +185,6 @@
       resize();
       window.addEventListener('resize', resize);
 
-      // Stars
       const STAR_COUNT = 180;
       const stars = Array.from({ length: STAR_COUNT }, () => ({
         x: Math.random() * 9999,
@@ -57,7 +193,6 @@
         a: Math.random()
       }));
 
-      // Shooting stars
       const shoots = [];
       function spawnShoot() {
         if (!isVisible) return;
@@ -83,7 +218,6 @@
       setInterval(spawnShoot, 1100);
       for (let i = 0; i < 3; i++) setTimeout(spawnShoot, i * 280);
 
-      // Mouse particles
       const particles = [];
       const MAX_PARTICLES = 45;
       let lastMX = -999, lastMY = -999;
@@ -113,7 +247,6 @@
       let glowAlpha = 0;
       window.addEventListener('mousemove', () => { glowAlpha = 1; });
 
-      // Click ripple
       window.addEventListener('click', e => {
         const el = document.createElement('div');
         el.className = 'ripple';
@@ -138,12 +271,11 @@
       });
 
       let t = 0;
-      function draw(ts) {
+      function draw() {
         if (!isVisible) return;
         rafId = requestAnimationFrame(draw);
         ctx.clearRect(0, 0, W, H);
 
-        // Vibrant orange gradient background
         const bg = ctx.createRadialGradient(W * 0.5, 0, 0, W * 0.5, H * 0.4, H);
         bg.addColorStop(0, '#3d1800');
         bg.addColorStop(0.4, '#2a0f00');
@@ -151,7 +283,6 @@
         ctx.fillStyle = bg;
         ctx.fillRect(0, 0, W, H);
 
-        // Twinkling stars
         t += 0.006;
         stars.forEach(s => {
           const twinkle = s.a + Math.sin(t * 1.5 + s.x) * 0.35;
@@ -163,7 +294,6 @@
         });
         ctx.globalAlpha = 1;
 
-        // Shooting stars
         for (let i = shoots.length - 1; i >= 0; i--) {
           const s = shoots[i];
           const spd = Math.sqrt(s.vx * s.vx + s.vy * s.vy);
@@ -189,7 +319,6 @@
           if (s.life <= 0 || s.x > W + 200 || s.y > H + 200) shoots.splice(i, 1);
         }
 
-        // Mouse glow
         if (mouse.x > 0) {
           glowAlpha *= 0.94;
           if (glowAlpha > 0.01) {
@@ -202,7 +331,6 @@
           }
         }
 
-        // Mouse trail particles
         for (let i = particles.length - 1; i >= 0; i--) {
           const p = particles[i];
           ctx.globalAlpha = p.life * 0.8;
