@@ -286,23 +286,9 @@
       musicBtn.title = on ? 'Mute music' : 'Play music';
     }
 
-    function saveMusicTime() {
-      if (music && !music.paused) {
-        lsSet('studioleaks-music-time', String(music.currentTime));
-      }
-    }
-
-    function restoreMusicTime() {
-      if (!music) return;
-      const t = parseFloat(lsGet('studioleaks-music-time') || '0');
-      if (!isNaN(t) && t > 0.5) {
-        try { music.currentTime = t; } catch (e) {}
-      }
-    }
-
     function tryPlayMusic() {
       if (!music) return;
-      restoreMusicTime();
+      music.currentTime = 0; // always start from the beginning
       music.play().then(() => {
         setMusicUI(true);
         lsSet('studioleaks-music', 'on');
@@ -323,7 +309,6 @@
         if (music.paused) {
           tryPlayMusic();
         } else {
-          saveMusicTime();
           music.pause();
           setMusicUI(false);
           lsSet('studioleaks-music', 'off');
@@ -338,11 +323,6 @@
       }
       document.removeEventListener('click', resumeOnce);
     }, { once: true });
-
-    // Keep position in sync across page changes
-    setInterval(saveMusicTime, 1500);
-    window.addEventListener('beforeunload', saveMusicTime);
-    window.addEventListener('pagehide', saveMusicTime);
 
     // ========== BACKGROUND CANVAS ==========
     (function () {
@@ -515,3 +495,4 @@
   </script>
 </body>
 </html>
+
