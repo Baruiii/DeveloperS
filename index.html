@@ -178,6 +178,8 @@
       transform: scale(1.05);
     }
   </style>
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" href="favicon.png">
 </head>
 <body>
   <canvas id="bg-canvas"></canvas>
@@ -266,46 +268,81 @@
       if (session) window.location.href = 'dashboard.html';
     });
 
-    // ========== BACKGROUND MUSIC ==========
+    // ---------- Background music ----------
     const music = document.getElementById('bg-music');
     const musicBtn = document.getElementById('music-btn');
-    music.volume = 0.35;
+    if (music) music.volume = 0.35;
+
+    function lsGet(key) {
+      try { return localStorage.getItem(key); } catch (e) { return null; }
+    }
+    function lsSet(key, val) {
+      try { localStorage.setItem(key, val); } catch (e) {}
+    }
 
     function setMusicUI(on) {
+      if (!musicBtn) return;
       musicBtn.classList.toggle('active', on);
       musicBtn.title = on ? 'Mute music' : 'Play music';
     }
 
+    function saveMusicTime() {
+      if (music && !music.paused) {
+        lsSet('studioleaks-music-time', String(music.currentTime));
+      }
+    }
+
+    function restoreMusicTime() {
+      if (!music) return;
+      const t = parseFloat(lsGet('studioleaks-music-time') || '0');
+      if (!isNaN(t) && t > 0.5) {
+        try { music.currentTime = t; } catch (e) {}
+      }
+    }
+
     function tryPlayMusic() {
+      if (!music) return;
+      restoreMusicTime();
       music.play().then(() => {
         setMusicUI(true);
-        localStorage.setItem('studioleaks-music', 'on');
+        lsSet('studioleaks-music', 'on');
       }).catch(() => {
         setMusicUI(false);
       });
     }
 
-    if (localStorage.getItem('studioleaks-music') === 'on') {
+    // Auto-start unless user explicitly turned music off
+    if (lsGet('studioleaks-music') !== 'off') {
       tryPlayMusic();
+    } else {
+      setMusicUI(false);
     }
 
-    musicBtn.addEventListener('click', () => {
-      if (music.paused) {
-        tryPlayMusic();
-      } else {
-        music.pause();
-        setMusicUI(false);
-        localStorage.setItem('studioleaks-music', 'off');
-      }
-    });
+    if (musicBtn) {
+      musicBtn.addEventListener('click', () => {
+        if (music.paused) {
+          tryPlayMusic();
+        } else {
+          saveMusicTime();
+          music.pause();
+          setMusicUI(false);
+          lsSet('studioleaks-music', 'off');
+        }
+      });
+    }
 
-    // After any click, resume if they previously turned music on
+    // First click anywhere unlocks autoplay if needed
     document.addEventListener('click', function resumeOnce() {
-      if (localStorage.getItem('studioleaks-music') === 'on' && music.paused) {
+      if (lsGet('studioleaks-music') !== 'off' && music && music.paused) {
         tryPlayMusic();
       }
       document.removeEventListener('click', resumeOnce);
     }, { once: true });
+
+    // Keep position in sync across page changes
+    setInterval(saveMusicTime, 1500);
+    window.addEventListener('beforeunload', saveMusicTime);
+    window.addEventListener('pagehide', saveMusicTime);
 
     // ========== BACKGROUND CANVAS ==========
     (function () {
