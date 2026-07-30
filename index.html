@@ -37,7 +37,6 @@
     @keyframes rippleOut {
       to { transform: translate(-50%, -50%) scale(1); opacity: 0; }
     }
-
     .login-card {
       position: relative;
       z-index: 2;
@@ -123,7 +122,6 @@
       opacity: 0.65;
       cursor: not-allowed;
     }
-
     .error-msg {
       margin-top: 1rem;
       font-size: 13px;
@@ -145,24 +143,56 @@
       60% { transform: translateX(-6px); }
       80% { transform: translateX(6px); }
     }
-
     .login-footer {
       margin-top: 1.75rem;
       font-size: 12px;
       color: rgba(255, 180, 120, 0.4);
       letter-spacing: 0.04em;
     }
+
+    /* Floating music button on login */
+    .music-btn {
+      position: fixed;
+      top: 1.25rem;
+      right: 1.25rem;
+      z-index: 30;
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: rgba(20, 8, 0, 0.75);
+      border: 1.5px solid rgba(255, 107, 26, 0.45);
+      color: rgba(255, 180, 120, 0.75);
+      font-size: 17px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(12px);
+      transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.2s;
+    }
+    .music-btn:hover,
+    .music-btn.active {
+      color: #ff6b1a;
+      border-color: #ff6b1a;
+      background: rgba(255, 107, 26, 0.18);
+      transform: scale(1.05);
+    }
   </style>
 </head>
 <body>
   <canvas id="bg-canvas"></canvas>
+
+  <button class="music-btn" id="music-btn" title="Toggle music" aria-label="Toggle music">♪</button>
+
+  <audio id="bg-music" loop preload="auto">
+    <source src="music/bg.mp3" type="audio/mpeg">
+  </audio>
 
   <div class="login-card">
     <div class="login-title">
       <span>Login to</span>
     </div>
     <div class="login-brand">StudioLeaks</div>
-
     <form id="login-form">
       <div class="field">
         <label>Email</label>
@@ -175,15 +205,13 @@
       <button type="submit" class="login-btn" id="login-btn">Sign In</button>
       <div class="error-msg" id="error-msg"></div>
     </form>
-
     <div class="login-footer">StudioLeaks — 2026</div>
   </div>
 
   <script>
     // ========== SUPABASE ==========
     const SUPABASE_URL = 'https://rkdvqfmmuioyxjqxtuuc.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrZHZxZm1tdWlveXhqcXh0dXVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNjQ3MzUsImV4cCI6MjEwMDk0MDczNX0.vyiN812DdhbiqMnqI9w2YY2eVMRx4IC-2Y6qyEVaSVU'; // ← paste your real anon key
-
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJrZHZxZm1tdWlveXhqcXh0dXVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNjQ3MzUsImV4cCI6MjEwMDk0MDczNX0.vyiN812DdhbiqMnqI9w2YY2eVMRx4IC-2Y6qyEVaSVU';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const form = document.getElementById('login-form');
@@ -193,7 +221,6 @@
     function showError(text) {
       errorEl.textContent = text;
       errorEl.classList.remove('show');
-      // restart shake animation
       void errorEl.offsetWidth;
       errorEl.classList.add('show');
     }
@@ -202,30 +229,22 @@
       e.preventDefault();
       errorEl.classList.remove('show');
       errorEl.textContent = '';
-
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
-
       if (!email || !password) {
         showError('Please enter email and password');
         return;
       }
-
       btn.disabled = true;
       btn.textContent = 'Signing in...';
-
       try {
         const { data, error } = await supabaseClient.auth.signInWithPassword({
           email,
           password
         });
-
         if (error) {
-          // Friendly messages
           const msg = error.message.toLowerCase();
-          if (msg.includes('invalid login') || msg.includes('invalid credentials')) {
-            showError('Incorrect email or password');
-          } else if (msg.includes('email')) {
+          if (msg.includes('invalid login') || msg.includes('invalid credentials') || msg.includes('email')) {
             showError('Incorrect email or password');
           } else {
             showError(error.message);
@@ -234,8 +253,6 @@
           btn.textContent = 'Sign In';
           return;
         }
-
-        // Success
         window.location.href = 'dashboard.html';
       } catch (err) {
         showError('Something went wrong. Check your connection.');
@@ -245,12 +262,52 @@
       }
     });
 
-    // Already logged in? Skip to dashboard
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
       if (session) window.location.href = 'dashboard.html';
     });
 
-    // ========== BACKGROUND ==========
+    // ========== BACKGROUND MUSIC ==========
+    const music = document.getElementById('bg-music');
+    const musicBtn = document.getElementById('music-btn');
+    music.volume = 0.35;
+
+    function setMusicUI(on) {
+      musicBtn.classList.toggle('active', on);
+      musicBtn.title = on ? 'Mute music' : 'Play music';
+    }
+
+    function tryPlayMusic() {
+      music.play().then(() => {
+        setMusicUI(true);
+        localStorage.setItem('studioleaks-music', 'on');
+      }).catch(() => {
+        setMusicUI(false);
+      });
+    }
+
+    if (localStorage.getItem('studioleaks-music') === 'on') {
+      tryPlayMusic();
+    }
+
+    musicBtn.addEventListener('click', () => {
+      if (music.paused) {
+        tryPlayMusic();
+      } else {
+        music.pause();
+        setMusicUI(false);
+        localStorage.setItem('studioleaks-music', 'off');
+      }
+    });
+
+    // After any click, resume if they previously turned music on
+    document.addEventListener('click', function resumeOnce() {
+      if (localStorage.getItem('studioleaks-music') === 'on' && music.paused) {
+        tryPlayMusic();
+      }
+      document.removeEventListener('click', resumeOnce);
+    }, { once: true });
+
+    // ========== BACKGROUND CANVAS ==========
     (function () {
       const canvas = document.getElementById('bg-canvas');
       if (!canvas) return;
@@ -272,7 +329,6 @@
         r: Math.random() * 1.2 + 0.2,
         a: Math.random()
       }));
-
       const shoots = [];
       function spawnShoot() {
         if (!isVisible) return;
@@ -354,14 +410,12 @@
         if (!isVisible) return;
         rafId = requestAnimationFrame(draw);
         ctx.clearRect(0, 0, W, H);
-
         const bg = ctx.createRadialGradient(W * 0.5, 0, 0, W * 0.5, H * 0.4, H);
         bg.addColorStop(0, '#3d1800');
         bg.addColorStop(0.4, '#2a0f00');
         bg.addColorStop(1, '#1a0a00');
         ctx.fillStyle = bg;
         ctx.fillRect(0, 0, W, H);
-
         t += 0.006;
         stars.forEach(s => {
           const twinkle = s.a + Math.sin(t * 1.5 + s.x) * 0.35;
@@ -372,7 +426,6 @@
           ctx.fill();
         });
         ctx.globalAlpha = 1;
-
         for (let i = shoots.length - 1; i >= 0; i--) {
           const s = shoots[i];
           const spd = Math.sqrt(s.vx * s.vx + s.vy * s.vy) || 1;
@@ -397,7 +450,6 @@
           s.x += s.vx; s.y += s.vy; s.life -= s.decay;
           if (s.life <= 0 || s.x > W + 200 || s.y > H + 200) shoots.splice(i, 1);
         }
-
         if (mouse.x > 0) {
           glowAlpha *= 0.94;
           if (glowAlpha > 0.01) {
@@ -409,7 +461,6 @@
             ctx.beginPath(); ctx.arc(mouse.x, mouse.y, 110, 0, Math.PI * 2); ctx.fill();
           }
         }
-
         for (let i = particles.length - 1; i >= 0; i--) {
           const p = particles[i];
           ctx.globalAlpha = p.life * 0.8;
