@@ -24,7 +24,6 @@
       z-index: 0;
       pointer-events: none;
     }
-
     .topbar {
       position: sticky;
       top: 0;
@@ -103,7 +102,27 @@
     .logout-btn:hover {
       background: rgba(255, 107, 26, 0.12);
     }
-
+    .music-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: transparent;
+      border: 1.5px solid rgba(255, 107, 26, 0.4);
+      color: rgba(255, 180, 120, 0.7);
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+      flex-shrink: 0;
+    }
+    .music-btn:hover,
+    .music-btn.active {
+      color: #ff6b1a;
+      border-color: #ff6b1a;
+      background: rgba(255, 107, 26, 0.12);
+    }
     .wrap {
       position: relative;
       z-index: 2;
@@ -118,7 +137,6 @@
       opacity: 1;
       transform: translateY(0);
     }
-
     .page-header {
       margin-bottom: 2rem;
       text-align: center;
@@ -133,8 +151,6 @@
       font-size: 15px;
       line-height: 1.55;
     }
-
-    /* Easy-to-edit credit blocks */
     .credits-list {
       display: flex;
       flex-direction: column;
@@ -183,7 +199,6 @@
     .credit-link:hover {
       color: #ff6b1a;
     }
-
     .footer-note {
       margin-top: 2.5rem;
       text-align: center;
@@ -191,7 +206,6 @@
       color: rgba(255, 180, 120, 0.35);
       letter-spacing: 0.04em;
     }
-
     .loading {
       position: fixed;
       inset: 0;
@@ -216,7 +230,6 @@
       color: rgba(255,180,120,0.55);
       font-weight: 400;
     }
-
     @media (max-width: 640px) {
       .topbar { padding: 0.75rem 1rem; }
       .user-info { display: none; }
@@ -242,21 +255,24 @@
       </nav>
     </div>
     <div class="topbar-right">
+      <button class="music-btn" id="music-btn" title="Toggle music" aria-label="Toggle music">♪</button>
       <span class="user-info" id="user-email"></span>
       <button class="logout-btn" id="logout-btn">Log out</button>
     </div>
   </header>
+
+  <audio id="bg-music" loop preload="auto">
+    <source src="music/bg.mp3" type="audio/mpeg">
+  </audio>
 
   <div class="wrap" id="app">
     <div class="page-header">
       <h1>Credits</h1>
       <p>People and projects that helped make StudioLeaks possible.</p>
     </div>
-
     <div class="credits-list" id="credits-list">
       <!-- Injected by JS from the CREDITS array below -->
     </div>
-
     <div class="footer-note">StudioLeaks — 2026</div>
   </div>
 
@@ -266,15 +282,8 @@
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // ============================================================
-    //  CREDITS — edit this array to add / change people
+    // CREDITS — edit this array to add / change people
     // ============================================================
-    //
-    //  role  – small uppercase label (e.g. "Founder", "Contributor")
-    //  name  – display name
-    //  note  – short description (optional)
-    //  link  – optional URL (GitHub, Twitter, etc.)
-    //  linkLabel – text for the link (default "Visit")
-    //
     const CREDITS = [
       {
         role: "Founder",
@@ -305,6 +314,53 @@
     const userEmailEl = document.getElementById('user-email');
     const logoutBtn = document.getElementById('logout-btn');
     const list = document.getElementById('credits-list');
+
+    // ---------- Background music ----------
+    const music = document.getElementById('bg-music');
+    const musicBtn = document.getElementById('music-btn');
+    music.volume = 0.35;
+
+    function safeGetMusicPref() {
+      try { return localStorage.getItem('studioleaks-music'); } catch (e) { return null; }
+    }
+    function safeSetMusicPref(val) {
+      try { localStorage.setItem('studioleaks-music', val); } catch (e) {}
+    }
+
+    function setMusicUI(on) {
+      musicBtn.classList.toggle('active', on);
+      musicBtn.title = on ? 'Mute music' : 'Play music';
+    }
+
+    function tryPlayMusic() {
+      music.play().then(() => {
+        setMusicUI(true);
+        safeSetMusicPref('on');
+      }).catch(() => {
+        setMusicUI(false);
+      });
+    }
+
+    if (safeGetMusicPref() === 'on') {
+      tryPlayMusic();
+    }
+
+    musicBtn.addEventListener('click', () => {
+      if (music.paused) {
+        tryPlayMusic();
+      } else {
+        music.pause();
+        setMusicUI(false);
+        safeSetMusicPref('off');
+      }
+    });
+
+    document.addEventListener('click', function resumeOnce() {
+      if (safeGetMusicPref() === 'on' && music.paused) {
+        tryPlayMusic();
+      }
+      document.removeEventListener('click', resumeOnce);
+    }, { once: true });
 
     function showApp(email) {
       userEmailEl.textContent = email || '';
