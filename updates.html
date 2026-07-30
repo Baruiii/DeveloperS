@@ -679,7 +679,16 @@
 
     searchInput.addEventListener('input', filterCards);
 
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
     async function init() {
+
       try {
         const { data: { session }, error } = await supabaseClient.auth.getSession();
         if (error || !session) {
